@@ -1,0 +1,59 @@
+services:
+  clickhouse:
+    image: yandex/clickhouse-server:latest
+    container_name: clickhouse
+    environment:
+      - CLICKHOUSE_DB=test
+      - CLICKHOUSE_USER=test
+      - CLICKHOUSE_PASSWORD=test
+      - CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=1
+    ports:
+      - "9000:9000"
+      - "8123:8123"
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+    networks:
+      - superset-net
+
+  superset:
+    build:
+      context: .
+      dockerfile: Dockerfile-superset
+    container_name: superset
+    environment:
+      - SUPERSET_ENV=production
+      - SUPERSET_SECRET_KEY=your-secure-secret-key
+      - FLASK_APP=superset.app
+    ports:
+      - "8088:8088"
+    depends_on:
+      - clickhouse
+    networks:
+      - superset-net
+    volumes:
+      - superset_home:/app/superset_home
+    command: >
+      /bin/sh -c "
+      sleep 15 &&  
+      superset db upgrade &&
+      superset fab create-admin --username admin --firstname Admin --lastname User --email admin@example.com --password admin &&
+      superset init &&
+      superset run -p 8088 --host=0.0.0.0
+      "
+
+  data-loader:
+    build:
+      context: .
+      dockerfile: Dockerfile-loader
+    depends_on:
+      - clickhouse
+    networks:
+      - superset-net
+
+volumes:
+  clickhouse_data:
+  superset_home:
+
+networks:
+  superset-net:
+    driver: bridge

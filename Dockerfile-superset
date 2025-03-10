@@ -1,0 +1,9 @@
+FROM apache/superset:latest
+
+USER root
+
+RUN pip install --no-cache-dir \
+    sqlalchemy==1.4.46 \
+    clickhouse-sqlalchemy==0.2.3 \
+    clickhouse-driver==0.2.5
+USER superset
